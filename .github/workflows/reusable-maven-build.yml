@@ -1,0 +1,51 @@
+name: Reusable Maven Build (no containers)
+ 
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        description: "Folder that contains pom.xml"
+        required: true
+        type: string
+      java_version:
+        description: "JDK to install"
+        required: false
+        default: "17"
+        type: string
+      run_tests:
+        description: "Run unit tests (true/false)"
+        required: false
+        default: true
+        type: boolean
+ 
+jobs:
+  build:
+    # no 'container:' section -> runs directly on the hosted VM
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java_version }}
+          cache: maven
+ 
+      - name: Build (no containers)
+        working-directory: ${{ inputs.project_path }}
+        run: |
+          if [ "${{ inputs.run_tests }}" = "true" ]; then
+            mvn -B -U -Dstyle.color=always clean verify
+          else
+            mvn -B -U -Dstyle.color=always clean package -DskipTests
+          fi
+ 
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build
+          path: ${{ inputs.project_path }}/target/*.jar
+          if-no-files-found: warn
