@@ -14,7 +14,7 @@ https://maven.apache.org/xsd/maven-4.0.0.xsd">
  
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
-<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.jupiter.version>5.10.2</junit.jupiter.version>
   </properties>
  
@@ -41,11 +41,6 @@ https://maven.apache.org/xsd/maven-4.0.0.xsd">
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
-      </plugin>
-      <plugin>
-        <groupid>org.apache.maven.plugins</groupid>
-        <artifactid>maven-jar-plugin</artifactid>
-        <version>3.3.0</version>
       </plugin>
     </plugins>
   </build>
