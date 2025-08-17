@@ -6,9 +6,6 @@ on:
       project_path:
         type: string
         required: true
-      java_versions:
-        type: string
-        default: "17"
       run_tests:
         type: boolean
         default: true
@@ -24,43 +21,5 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ inputs.java_versions }}
           distribution: temurin
-          cache: maven
- 
-# TEMPORARY safety net: ensure the correct App.java is compiled
-      # You can remove this step after your repo contains the same code.
-      - name: Patch App.java (force correct greeting)
-        run: |
-          set -euo pipefail
-          mkdir -p "${{ inputs.project_path }}/src/main/java/com/example"
-          cat > "${{ inputs.project_path }}/src/main/java/com/example/App.java" <<'JAVA'
-package com.example;
-
-public class App {
-    public static String greet(String name) {
-        return "Hello, " + name + "!";
-    }
-    public static void main(String[] args) {
-        System.out.println(greet("World"));
-    }
-}
-JAVA
-echo "=== App.java being compiled ==="
-nl -ba "${{ inputs.project_path }}/src/main/java/com/example/App.java" | sed -n '1,120p'
- 
-      - name: Build with Maven
-        working-directory: ${{ inputs.project_path }}
-        run: |
-          if ${{ inputs.run_tests }}; then
-            mvn -B -U -Dstyle.color=always clean package
-          else
-            mvn -B -U -Dstyle.color=always -DskipTests=true clean package
-          fi
- 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: maven-build
-          path: ${{ inputs.project_path }}/target/*.jar
-          if-no-files-found: warn
+          
