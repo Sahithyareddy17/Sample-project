@@ -1,8 +1,10 @@
+package com.example;
+  
 public class App {
-  public String greetWorld() {
+  public static String greetWorld() {
     return "Hello, World!"; 
   }
   public static void main(String[] args) {
-      System.out.println(new App().greetWorld());
+      System.out.println(greetWorld());
   }
 }
