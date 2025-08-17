@@ -1,0 +1,121 @@
+name: Multi-stage Pipeline
+ 
+on:
+  push:
+    branches: [ "main", "master", "develop", "feature/*" ]
+  workflow_dispatch:
+ 
+env:
+  PROJECT_PATH: my-app
+  JAVA_VERSION: '17'
+ 
+# Prevent overlapping runs on same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+ 
+jobs:
+  # 1) BUILD (compile + test + package + upload artifact)
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    environment: dev          # just to simulate an env for build; can be omitted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+ 
+      - name: Maven verify (tests)
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: mvn -B -U -Dstyle.color=always clean verify
+ 
+      - name: Package
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: mvn -B -U -Dstyle.color=always -DskipTests package
+ 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: ${{ env.PROJECT_PATH }}/target/*.jar
+          if-no-files-found: error
+ 
+  # 2) DEPLOY TO TEST (runs after build)
+  deploy_test:
+    name: Deploy to TEST
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: test               # ← create "test" environment in Settings → Environments
+      url: ${{ vars.APP_URL }} # optional env var you set on the "test" environment
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: dist/
+ 
+      - name: Show what we got
+        run: ls -la dist
+ 
+      - name: Deploy (TEST)
+        env:
+          APP_URL:   ${{ vars.APP_URL }}             # environment var (per env)
+          API_TOKEN: ${{ secrets.DEPLOY_TOKEN }}     # environment secret (per env)
+        run: |
+          echo "Deploying to TEST: $APP_URL"
+          # Example:
+          # curl -H "Authorization: Bearer $API_TOKEN" -F file=@dist/your.jar "$APP_URL/deploy"
+ 
+  # 3) DEPLOY TO STAGING (needs deploy_test, protected by Environment reviewers)
+  deploy_staging:
+    name: Deploy to STAGING (approval required)
+    needs: deploy_test
+    runs-on: ubuntu-latest
+    environment:
+      name: staging           # ← add Required reviewers in Environment settings
+      url: ${{ vars.APP_URL }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: dist/
+ 
+      - name: Deploy (STAGING)
+        env:
+          APP_URL:   ${{ vars.APP_URL }}
+          API_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          echo "Deploying to STAGING: $APP_URL"
+          # ./scripts/deploy-staging.sh dist/*.jar "$APP_URL" "$API_TOKEN"
+ 
+  # 4) DEPLOY TO PROD (needs deploy_staging, protected by Environment reviewers)
+  deploy_prod:
+    name: Deploy to PROD (approval required)
+    needs: deploy_staging
+    runs-on: ubuntu-latest
+    environment:
+      name: prod              # ← add Required reviewers & Branch policy in Environment settings
+      url: ${{ vars.APP_URL }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: dist/
+ 
+      - name: Deploy (PROD)
+        env:
+          APP_URL:   ${{ vars.APP_URL }}
+          API_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          echo "Deploying to PROD: $APP_URL"
+          # ./scripts/deploy-prod.sh dist/*.jar "$APP_URL" "$API_TOKEN"
+ 
