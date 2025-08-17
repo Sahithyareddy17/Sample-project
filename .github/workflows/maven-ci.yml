@@ -1,10 +1,11 @@
-name: Maven CI
+name: Maven CI (with POM inspector)
  
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
+  workflow_dispatch:
  
 jobs:
   build:
@@ -17,25 +18,39 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'     # you can change to '21' if you like
+          java-version: '17'
           distribution: 'temurin'
           cache: maven
+ 
+      # 👇 DEBUG: show if there are hidden bytes before the XML prolog
       - name: Inspect pom header
         working-directory: my-app
         run: |
-          echo ">>> First 5 lines (with line numbers)"
-          nl -ba pom.xml | sed -n '1,5p'
+          echo ">>> First 5 lines of pom.xml (with line numbers)"
+          nl -ba pom.xml | sed -n '1,5p' || true
           echo
-          echo ">>> Hex of first 64 bytes (shows hidden chars/BOM)"
-          xxd -g 1 -l 64 pom.xml || hexdump -C -n 64 pom.xml
-          
+          echo ">>> Hex of first 64 bytes (BOM/hidden chars will show)"
+          (xxd -g 1 -l 64 pom.xml || hexdump -C -n 64 pom.xml) || true
+          echo
+          echo ">>> File encoding guess"
+          (file -bi pom.xml || file pom.xml) || true
+ 
       - name: Build with Maven
-        working-directory: my-app   # 👈 very important since pom.xml is inside my-app/
-        run: mvn -B package --file pom.xml
+        working-directory: my-app
+        run: mvn -B -U -Dstyle.color=always clean package | tee maven-build.log
  
-      - name: Upload JAR
-        uses: actions/upload-artifact@v4 # ✅ upgraded from v3 → v4
- 
+      - name: Upload JAR (if any)
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
           name: my-app-jar
           path: my-app/target/*.jar
+          if-no-files-found: warn
+ 
+      - name: Upload Maven build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build-log
+          path: my-app/maven-build.log
+          if-no-files-found: ignore
