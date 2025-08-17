@@ -1,0 +1,18 @@
+name: Maven CI
+ 
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+ 
+jobs:
+  build:
+    uses: ./.github/workflows/maven-reusable.yml
+    with:
+      project_path: my-app            # <-- folder where pom.xml lives
+      java_versions: "17,21"
+      run_tests: true
+    secrets:
+      MAVEN_SETTINGS_XML: ${{ secrets.MAVEN_SETTINGS_XML }}
