@@ -5,74 +5,41 @@ on:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
-    inputs:
-      project_path:
-        description: "Path containing pom.xml ('.' for repo root)"
-        type: string
-        default: "."
  
 jobs:
-  build-test-package:
-   name: Build & Test (JDK ${{ matrix.java }})
-   runs-on: ubuntu-latest
-   strategy:
-      fail-fast: false
+  build:
+    runs-on: ubuntu-latest
+ 
+    strategy:
       matrix:
         java: [17, 21]
  
-   env:
-      WORKDIR: ${{ inputs.project_path || '.' }}
- 
-   steps:
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
  
-      - name: Show files (debug)
-        run: |
-          echo "Working dir: $WORKDIR"
-          ls -la
-          echo "----"
-          ls -la "$WORKDIR"
- 
-      - name: Setup Java
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
           cache: maven
  
-      - name: Maven Validate
-        run: mvn -B -q validate
-        working-directory: ${{ env.WORKDIR }}
+      - name: Show files (debug)
+        run: ls -R .
+      
+      - name: Build with Maven
+        run: mvn -B clean package
+        working-directory: ./my-app   # 👈 tell GitHub Actions where pom.xml is
  
-      - name: Compile & Unit Tests
-        run: mvn -B -U test
-        working-directory: ${{ env.WORKDIR }}
+      - name: Run tests
+        run: mvn -B test
+        working-directory: ./my-app
  
-      - name: Package (JAR/WAR)
-        run: mvn -B -DskipTests=false -Dstyle.color=always package
-        working-directory: ${{ env.WORKDIR }}
- 
-      - name: Upload JAR/WAR
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-         name: maven-artifacts-jdk${{ matrix.java }}
-         path: |
-            ${{ env.WORKDIR }}/**/target/*.jar
-            ${{ env.WORKDIR }}/**/target/*.war
-         if-no-files-found: warn
- 
-      - name: Upload Test Reports
-        uses: actions/upload-artifact@v4
-        with:
-         name: test-reports-jdk${{ matrix.java }}
-         path: |
-            ${{ env.WORKDIR }}/**/target/surefire-reports/**
-            ${{ env.WORKDIR }}/**/target/failsafe-reports/**
-         if-no-files-found: ignore
- 
-      - name: Summary
-        run: |
-          echo "### Build summary (JDK ${{ matrix.java }})" >> $GITHUB_STEP_SUMMARY
+          name: myapp-artifacts-jdk${{ matrix.java }}
+          path: ./my-app/target/*.jar)" >> $GITHUB_STEP_SUMMARY
           echo "- Path: \`${{ env.WORKDIR }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Ref:  \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
