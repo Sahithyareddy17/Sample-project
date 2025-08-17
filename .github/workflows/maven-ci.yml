@@ -1,0 +1,55 @@
+name: CI Maven
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+ 
+jobs:
+  build-test-package:
+   name: Build & Test (JDK ${{ matrix.java }})
+   runs-on: ubuntu-latest
+ 
+   strategy:
+      fail-fast: false
+      matrix:
+        java: [ 17, 21 ]   # pick your JDKs
+ 
+   steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+ 
+      - name: Show Maven & Java
+        run: |
+          mvn -v
+          java -version
+ 
+      - name: Build (skip tests for compile speed)
+        run: mvn -B -U -DskipTests=true clean package
+ 
+      - name: Run Unit Tests
+        run: mvn -B test
+ 
+      - name: Package (with tests)
+        run: mvn -B -DskipTests=false -Dstyle.color=always package
+ 
+      - name: Locate artifacts (JARs)
+        run: |
+          echo "Artifacts:"
+          find . -type f -path "*/target/*.jar" -not -name "*sources.jar" -not -name "*javadoc.jar" -print
+ 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+         name: maven-artifacts-jdk${{ matrix.java }}
+         path: |
+            **/target/*.jar
+            **/target/*.war
+         if-no-files-found: warn
