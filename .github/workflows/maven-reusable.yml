@@ -13,7 +13,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
- 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,4 +21,21 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          
+          java-version: '17'     # <- THIS must be present
+          cache: maven
+ 
+      - name: Build with Maven
+        working-directory: ${{ inputs.project_path }}
+        run: |
+          if ${{ inputs.run_tests }}; then
+            mvn -B -U -Dstyle.color=always clean package
+          else
+            mvn -B -U -Dstyle.color=always -DskipTests=true clean package
+          fi
+ 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build
+          path: ${{ inputs.project_path }}/target/*.jar
+          if-no-files-found: warn
