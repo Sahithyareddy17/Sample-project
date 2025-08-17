@@ -7,17 +7,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
   <artifactId>my-app</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>my-app</name>
  
   <properties>
-    <!-- Use one of these: either release or source/target -->
     <maven.compiler.release>17</maven.compiler.release>
 <project.build.sourceEncoding>UTF-8project.build.sourceEncoding>
     <junit.jupiter.version>5.10.2</junit.jupiter.version>
   </properties>
  
   <dependencies>
-    <!-- JUnit 5 for tests -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -28,7 +25,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
  
   <build>
     <plugins>
-      <!-- Ensures Java 17 bytecode -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -37,8 +33,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
           <release>17</release>
         </configuration>
       </plugin>
- 
-      <!-- Enable JUnit 5 on Surefire -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
