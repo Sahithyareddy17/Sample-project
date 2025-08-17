@@ -11,26 +11,23 @@ jobs:
     runs-on: ubuntu-latest
  
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
  
-      # Step 2: Set up JDK
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'     # you can change to '21' if you like
           distribution: 'temurin'
           cache: maven
- 
-      # Step 3: Build with Maven
+
       - name: Build with Maven
         working-directory: my-app   # 👈 very important since pom.xml is inside my-app/
         run: mvn -B package --file pom.xml
  
-      # Step 4: Upload build artifacts (optional but useful)
       - name: Upload JAR
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # ✅ upgraded from v3 → v4
+ 
         with:
           name: my-app-jar
           path: my-app/target/*.jar
