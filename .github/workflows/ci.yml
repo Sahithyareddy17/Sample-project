@@ -11,7 +11,7 @@ jobs:
   build:
     uses: ./.github/workflows/maven-reusable.yml
     with:
-      project_path: my-app            # <-- folder where pom.xml lives
+      project_path: my-app            
       java_versions: "17"
       run_tests: true
    
