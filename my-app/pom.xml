@@ -14,7 +14,7 @@ https://maven.apache.org/xsd/maven-4.0.0.xsd">
  
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
-<project.build.sourceEncoding>UTF-8project.build.sourceEncoding>
+<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.jupiter.version>5.10.2</junit.jupiter.version>
   </properties>
  
