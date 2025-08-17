@@ -22,10 +22,12 @@ jobs:
       # 👇 This overwrites my-app/pom.xml with a clean, known-good file
       - name: Write clean pom.xml (repair)
         working-directory: my-app
+        shell: bash
         run: |
-          cat > pom.xml <<'EOF'
+          set -euo pipefail
+          cat > pom.xml <<'POM'
 <?xml version="1.0" encoding="UTF-8"?>
-<project
+<project 
 xmlns="http://maven.apache.org/POM/4.0.0"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -73,10 +75,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
     </plugins>
   </build>
 </project>
-EOF
+POM
  
-          echo "=== First 6 lines of the pom we will build with ==="
-          nl -ba pom.xml | sed -n '1,6p'
+          echo "=== First lines of the pom.xml ==="
+          nl -ba pom.xml | sed -n '1,12p'
  
       - name: Build & Test
         working-directory: my-app
