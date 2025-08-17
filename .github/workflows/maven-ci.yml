@@ -20,7 +20,15 @@ jobs:
           java-version: '17'     # you can change to '21' if you like
           distribution: 'temurin'
           cache: maven
-
+      - name: Inspect pom header
+        working-directory: my-app
+        run: |
+          echo ">>> First 5 lines (with line numbers)"
+          nl -ba pom.xml | sed -n '1,5p'
+          echo
+          echo ">>> Hex of first 64 bytes (shows hidden chars/BOM)"
+          xxd -g 1 -l 64 pom.xml || hexdump -C -n 64 pom.xml
+          
       - name: Build with Maven
         working-directory: my-app   # 👈 very important since pom.xml is inside my-app/
         run: mvn -B package --file pom.xml
