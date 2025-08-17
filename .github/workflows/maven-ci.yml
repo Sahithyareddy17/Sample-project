@@ -1,3 +1,4 @@
+ 
 name: Maven CI
  
 on:
@@ -6,17 +7,35 @@ on:
   pull_request:
   workflow_dispatch:
  
+env:
+  PROJECT_PATH: my-app   # 👈 your pom.xml lives in this folder
+ 
 jobs:
   build:
     runs-on: ubuntu-latest
- 
     strategy:
+      fail-fast: false
       matrix:
         java: [17, 21]
  
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+ 
+      - name: Show files (debug)
+        run: |
+          echo "Repo root:"
+          ls -la
+          echo "----"
+          echo "Project path ($PROJECT_PATH):"
+          ls -la "$PROJECT_PATH"
+ 
+      - name: Verify pom.xml exists
+        run: |
+          test -f "$PROJECT_PATH/pom.xml" || {
+            echo "::error::pom.xml not found at $PROJECT_PATH"
+            exit 1
+          }
  
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
@@ -25,21 +44,37 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
  
-      - name: Show files (debug)
-        run: ls -R .
-      
-      - name: Build with Maven
-        run: mvn -B clean package
-        working-directory: ./my-app   # 👈 tell GitHub Actions where pom.xml is
+      # Build + test + package; capture full log for later upload if needed
+      - name: Build with Maven (tests on)
+        shell: bash
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: |
+          set -euo pipefail
+          mvn -B -U -Dstyle.color=always clean package | tee maven-build.log
  
-      - name: Run tests
-        run: mvn -B test
-        working-directory: ./my-app
- 
-      - name: Upload artifacts
+      - name: Upload JAR/WAR artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-artifacts-jdk${{ matrix.java }}
-          path: ./my-app/target/*.jar)" >> $GITHUB_STEP_SUMMARY
-          echo "- Path: \`${{ env.WORKDIR }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Ref:  \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+         name: app-artifacts-jdk${{ matrix.java }}
+         path: |
+            ${{ env.PROJECT_PATH }}/**/target/*.jar
+            ${{ env.PROJECT_PATH }}/**/target/*.war
+         if-no-files-found: warn
+ 
+      - name: Upload test reports (Surefire/Failsafe)
+        uses: actions/upload-artifact@v4
+        with:
+         name: test-reports-jdk${{ matrix.java }}
+         path: |
+            ${{ env.PROJECT_PATH }}/**/target/surefire-reports/**
+            ${{ env.PROJECT_PATH }}/**/target/failsafe-reports/**
+         if-no-files-found: ignore
+ 
+      # If anything failed above, ship the Maven log so you can read it
+      - name: Upload Maven build log (only on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build-log-jdk${{ matrix.java }}
+          path: ${{ env.PROJECT_PATH }}/maven-build.log
+          if-no-files-found: ignore
