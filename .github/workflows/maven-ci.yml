@@ -2,49 +2,35 @@ name: Maven CI
  
 on:
   push:
-    branches: [main, master]
+    branches: [ "master" ]
   pull_request:
-  workflow_dispatch:
+    branches: [ "master" ]
  
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        java: [17, 21]
  
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
  
-      - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+      # Step 2: Set up JDK
+      - name: Set up JDK
+        uses: actions/setup-java@v3
         with:
-          distribution: temurin
-          java-version: ${{ matrix.java }}
+          java-version: '17'     # you can change to '21' if you like
+          distribution: 'temurin'
           cache: maven
  
-      - name: Show files (debug)
-        run: ls -R .
- 
+      # Step 3: Build with Maven
       - name: Build with Maven
-        run: mvn -B -U -Dstyle.color=always clean package
-        working-directory: .
+        working-directory: my-app   # 👈 very important since pom.xml is inside my-app/
+        run: mvn -B package --file pom.xml
  
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      # Step 4: Upload build artifacts (optional but useful)
+      - name: Upload JAR
+        uses: actions/upload-artifact@v3
         with:
-         name: app-artifacts-jdk${{ matrix.java }}
-         path: |
-            **/target/*.jar
-            **/target/*.war
-         if-no-files-found: warn
- 
-      - name: Upload test reports
-        uses: actions/upload-artifact@v4
-        with:
-         name: test-reports-jdk${{ matrix.java }}
-         path: |
-            **/target/surefire-reports/**
-            **/target/failsafe-reports/**
-         if-no-files-found: ignore
+          name: my-app-jar
+          path: my-app/target/*.jar
