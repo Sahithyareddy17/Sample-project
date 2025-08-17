@@ -4,15 +4,12 @@ on:
   workflow_call:
     inputs:
       project_path:
-        description: "Path to the Maven module (folder containing pom.xml)"
         type: string
         required: true
       java_versions:
-        description: "Comma-separated JDK versions"
         type: string
         default: "17"
       run_tests:
-        description: "Run tests (true/false)"
         type: boolean
         default: true
  
@@ -35,13 +32,14 @@ jobs:
         working-directory: ${{ inputs.project_path }}
         run: |
           if ${{ inputs.run_tests }}; then
-            mvn -B -U clean package
+            mvn -B -U -Dstyle.color=always clean package
           else
-            mvn -B -U clean package-DskipTests=fi
- 
+            mvn -B -U -Dstyle.color=always-DskipTests=true clean package
+          fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
          name: maven-build
          path: ${{ inputs.project_path }}/target/*.jar
+         if-no-files-found: warn
           
