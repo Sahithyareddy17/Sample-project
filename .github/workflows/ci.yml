@@ -12,5 +12,4 @@ jobs:
     uses: ./.github/workflows/maven-reusable.yml
     with:
       project_path: my-app
-      java_versions: "17"
       run_tests: true
