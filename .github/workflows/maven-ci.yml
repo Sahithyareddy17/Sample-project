@@ -1,55 +1,78 @@
-name: CI Maven
+name: Maven CI
+ 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
   workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Path containing pom.xml ('.' for repo root)"
+        type: string
+        default: "."
  
 jobs:
   build-test-package:
    name: Build & Test (JDK ${{ matrix.java }})
    runs-on: ubuntu-latest
- 
    strategy:
       fail-fast: false
       matrix:
-        java: [ 17, 21 ]   # pick your JDKs
+        java: [17, 21]
+ 
+   env:
+      WORKDIR: ${{ inputs.project_path || '.' }}
  
    steps:
       - name: Checkout
         uses: actions/checkout@v4
  
-      - name: Setup Java ${{ matrix.java }}
+      - name: Show files (debug)
+        run: |
+          echo "Working dir: $WORKDIR"
+          ls -la
+          echo "----"
+          ls -la "$WORKDIR"
+ 
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
           cache: maven
  
-      - name: Show Maven & Java
-        run: |
-          mvn -v
-          java -version
+      - name: Maven Validate
+        run: mvn -B -q validate
+        working-directory: ${{ env.WORKDIR }}
  
-      - name: Build (skip tests for compile speed)
-        run: mvn -B -U -DskipTests=true clean package
+      - name: Compile & Unit Tests
+        run: mvn -B -U test
+        working-directory: ${{ env.WORKDIR }}
  
-      - name: Run Unit Tests
-        run: mvn -B test
- 
-      - name: Package (with tests)
+      - name: Package (JAR/WAR)
         run: mvn -B -DskipTests=false -Dstyle.color=always package
+        working-directory: ${{ env.WORKDIR }}
  
-      - name: Locate artifacts (JARs)
-        run: |
-          echo "Artifacts:"
-          find . -type f -path "*/target/*.jar" -not -name "*sources.jar" -not -name "*javadoc.jar" -print
- 
-      - name: Upload build artifacts
+      - name: Upload JAR/WAR
         uses: actions/upload-artifact@v4
         with:
          name: maven-artifacts-jdk${{ matrix.java }}
          path: |
-            **/target/*.jar
-            **/target/*.war
+            ${{ env.WORKDIR }}/**/target/*.jar
+            ${{ env.WORKDIR }}/**/target/*.war
          if-no-files-found: warn
+ 
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+         name: test-reports-jdk${{ matrix.java }}
+         path: |
+            ${{ env.WORKDIR }}/**/target/surefire-reports/**
+            ${{ env.WORKDIR }}/**/target/failsafe-reports/**
+         if-no-files-found: ignore
+ 
+      - name: Summary
+        run: |
+          echo "### Build summary (JDK ${{ matrix.java }})" >> $GITHUB_STEP_SUMMARY
+          echo "- Path: \`${{ env.WORKDIR }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Ref:  \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
