@@ -15,74 +15,33 @@ on:
         description: "Run tests (true/false)"
         type: boolean
         default: true
-    secrets:
-      MAVEN_SETTINGS_XML:
-        required: false
-    outputs:
-      artifact_name:
-        description: "Name of the uploaded artifact"
-        value: ${{ jobs.build.outputs.artifact_name }}
-      project_version:
-        description: "Version resolved from the POM"
-        value: ${{ jobs.build.outputs.project_version }}
  
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      artifact_name: ${{ steps.name_artifact.outputs.name }}
-      project_version: ${{ steps.read_version.outputs.version }}
- 
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: ${{ fromJson(format('[{0}]', join(split(inputs.java_versions, ','), ',"'))) }}
- 
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
  
-      - name: Set up JDK ${{ matrix.jdk }}
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.jdk }}
+          java-version: ${{ inputs.java_versions }}
           distribution: temurin
           cache: maven
  
-      # Optional private repos: drop a settings.xml from a secret
-      - name: Write Maven settings (optional)
-        if: ${{ secrets.MAVEN_SETTINGS_XML != '' }}
-        run: echo "${{ secrets.MAVEN_SETTINGS_XML }}" > ~/.m2/settings.xml
- 
-      - name: Build (with or without tests)
+      - name: Build with Maven
         working-directory: ${{ inputs.project_path }}
         run: |
           if ${{ inputs.run_tests }}; then
-            mvn -B -U -Dstyle.color=always clean package
+            mvn -B -U clean package
           else
-            mvn -B -U -Dstyle.color=always -DskipTests=true clean package
-          fi
+            mvn -B -U clean package-DskipTests=fi
  
-      - name: Read project version from POM
-        id: read_version
-        working-directory: ${{ inputs.project_path }}
-        run: |
-          ver=$(mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive \
-                 org.codehaus.mojo:exec-maven-plugin:3.1.0:exec)
-          echo "version=$ver" >> "$GITHUB_OUTPUT"
- 
-      - name: Name artifact
-        id: name_artifact
-        run: |
-          n="${{ github.event.repository.name }}-jdk${{ matrix.jdk }}"
-          echo "name=$n" >> "$GITHUB_OUTPUT"
- 
-      - name: Upload JAR(s)
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.name_artifact.outputs.name }}
-          path: |
-            ${{ inputs.project_path }}/target/*.jar
-            ${{ inputs.project_path }}/target/*.war
-          if-no-files-found: warn
-          retention-days: 7
+         name: maven-build
+         path: ${{ inputs.project_path }}/target/*.jar
+          
